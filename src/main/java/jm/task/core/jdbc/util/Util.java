@@ -26,10 +26,9 @@ public class Util {
     public static Connection open() {
         try {
             return DriverManager.getConnection(
-                    PropertiesUtil.get(URL_KEY),
-                    PropertiesUtil.get(USERNAME_KEY),
-                    PropertiesUtil.get(PASSWORD_KEY)
-            );
+                    "jdbc:mysql://localhost:3306/user_schema",
+                    "root",
+                    "admin1234");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

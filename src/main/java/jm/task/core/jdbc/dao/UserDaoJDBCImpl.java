@@ -9,8 +9,6 @@ import java.util.List;
 
 public class UserDaoJDBCImpl implements UserDao {
     private static final UserDaoJDBCImpl INSTANCE;
-    private Connection connection = null;
-    private Statement statement = null;
     private PreparedStatement prepareStatement = null;
 
     static {
@@ -54,54 +52,38 @@ public class UserDaoJDBCImpl implements UserDao {
     }
 
     public void createUsersTable() {
-        ddlOperation(CREATE_USERS_TABLE_SQL);
-    }
-
-    public void dropUsersTable() {
-        ddlOperation(DROP_USERS_TABLE_SQL);
-    }
-
-    public void cleanUsersTable() {
-        ddlOperation(TRUNCATE_TABLE_SQL);
-    }
-
-    public void ddlOperation(String ddlOperation){
         try {
-            connection = Util.open();
-            connection.setAutoCommit(false);
-            statement = connection.createStatement();
-            statement.execute(ddlOperation);
-            connection.commit();
+            ddlOperation(CREATE_USERS_TABLE_SQL);
         } catch (SQLException e) {
-            if (connection != null) {
-                try {
-                    connection.rollback();
-                } catch (SQLException ex) {
-                    throw new DAOException(ex);
-                }
-            }
-            throw new DAOException(e);
-        } finally {
-            if (connection!= null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    throw new DAOException(e);
-                }
-            } if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e) {
-                    throw new DAOException(e);
-                }
-            }
+            throw new RuntimeException(e);
         }
     }
 
-    public void saveUser(String name, String lastName, byte age) {
+    public void dropUsersTable() {
         try {
-            connection = Util.open();
-            connection.setAutoCommit(false);
+            ddlOperation(DROP_USERS_TABLE_SQL);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void cleanUsersTable() {
+        try {
+            ddlOperation(TRUNCATE_TABLE_SQL);
+        } catch (SQLException e) {
+            throw new DAOException(e);
+        }
+    }
+
+    public void ddlOperation(String ddlOperation) throws SQLException {
+        try (Connection connection = Util.open()) {
+            connection.createStatement().execute(ddlOperation);
+        }
+
+    }
+
+    public void saveUser(String name, String lastName, byte age) {
+        try (Connection connection = Util.open()) {
             prepareStatement = connection.prepareStatement(SAVE_USER_SQL, Statement.RETURN_GENERATED_KEYS);
             prepareStatement.setString(1, name);
             prepareStatement.setString(2, lastName);
@@ -111,102 +93,31 @@ public class UserDaoJDBCImpl implements UserDao {
             if (generatedKeys.next()) {
                 System.out.format("User с именем – %s добавлен в базу данных \n", name);
             }
-            connection.commit();
         } catch (SQLException e) {
-            if (connection != null) {
-                try {
-                    connection.rollback();
-                } catch (SQLException ex) {
-                    throw new DAOException(ex);
-                }
-            }
             throw new DAOException(e);
-        } finally {
-            if (connection!= null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    throw new DAOException(e);
-                }
-            } if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e) {
-                    throw new DAOException(e);
-                }
-            }
         }
     }
 
     public void removeUserById(long id) {
-        try {
-            connection = Util.open();
-            connection.setAutoCommit(false);
+        try (Connection connection = Util.open()) {
             prepareStatement = connection.prepareStatement(DELETE_BY_ID_SQL);
             prepareStatement.setLong(1, id);
             prepareStatement.executeUpdate();
-            connection.commit();
         } catch (SQLException e) {
-            if (connection != null) {
-                try {
-                    connection.rollback();
-                } catch (SQLException ex) {
-                    throw new DAOException(ex);
-                }
-            }
             throw new DAOException(e);
-        } finally {
-            if (connection!= null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    throw new DAOException(e);
-                }
-            } if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e) {
-                    throw new DAOException(e);
-                }
-            }
         }
     }
 
     public List<User> getAllUsers() {
-        try {
-            connection = Util.open();
-            connection.setAutoCommit(false);
-            prepareStatement = connection.prepareStatement(GET_ALL_SQL);
-            ResultSet resultSet = prepareStatement.executeQuery();
+        try (Connection connection = Util.open()) {
+            ResultSet resultSet= connection.prepareStatement(GET_ALL_SQL).executeQuery();
             List<User> Users = new ArrayList<>();
             while (resultSet.next()) {
                 Users.add(buildUser(resultSet));
             }
-            connection.commit();
             return Users;
         } catch (SQLException e) {
-            if (connection != null) {
-                try {
-                    connection.rollback();
-                } catch (SQLException ex) {
-                    throw new DAOException(ex);
-                }
-            }
             throw new DAOException(e);
-        } finally {
-            if (connection!= null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    throw new DAOException(e);
-                }
-            } if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e) {
-                    throw new DAOException(e);
-                }
-            }
         }
     }
 
@@ -219,8 +130,6 @@ public class UserDaoJDBCImpl implements UserDao {
         );
         return user;
     }
-
-
 
     public static UserDaoJDBCImpl getInstance() {
         return INSTANCE;
