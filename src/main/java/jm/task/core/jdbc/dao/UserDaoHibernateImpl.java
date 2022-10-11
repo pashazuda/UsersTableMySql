@@ -13,15 +13,6 @@ import java.sql.SQLException;
 import java.util.List;
 
 public class UserDaoHibernateImpl implements UserDao {
-
-    private static final UserDaoHibernateImpl INSTANCE;
-
-
-    static {
-        INSTANCE = new UserDaoHibernateImpl();
-    }
-
-
     private static final String CREATE_USERS_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTO_INCREMENT,
@@ -35,26 +26,28 @@ public class UserDaoHibernateImpl implements UserDao {
 
     private static final String CLEAN_USERS = """
             DELETE FROM User""";
+
     public UserDaoHibernateImpl() {
 
     }
 
-    public void ddlOperation(String ddlOperation){
+
+    @Override
+    public void createUsersTable() {
         try (Session session = Util.getSessionFactory().openSession()) {
             session.beginTransaction();
-            session.createSQLQuery(ddlOperation).executeUpdate();
+            session.createSQLQuery(CREATE_USERS_TABLE_SQL).executeUpdate();
             session.getTransaction().commit();
         }
     }
 
     @Override
-    public void createUsersTable() {
-        ddlOperation(CREATE_USERS_TABLE_SQL);
-    }
-
-    @Override
     public void dropUsersTable() {
-        ddlOperation(DROP_USERS_TABLE_SQL);
+        try (Session session = Util.getSessionFactory().openSession()) {
+            session.beginTransaction();
+            session.createSQLQuery(DROP_USERS_TABLE_SQL).executeUpdate();
+            session.getTransaction().commit();
+        }
     }
 
     @Override
@@ -97,7 +90,4 @@ public class UserDaoHibernateImpl implements UserDao {
         }
     }
 
-    public static UserDaoHibernateImpl getInstance() {
-        return INSTANCE;
-    }
 }
